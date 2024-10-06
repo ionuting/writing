@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindmap Sticky Notes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        #mindmap-container {
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        #mindmap {
+            position: relative;
+            width: 100%;
+            height: 1200px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            overflow: auto;
+        }
+
+        .node {
+            position: absolute;
+            padding: 10px;
+            width: 330px; /* 50% wider */
+            height: 150px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            cursor: move;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.5;
+            background-color: rgba(255, 255, 255, 0.8); /* Default pale background */
+        }
+
+        /* Pale colors for the nodes */
+        .node-0 { background-color: rgba(59, 255, 229, 0.3); }
+        .node-1 { background-color: rgba(255, 235, 59, 0.3); }
+        .node-2 { background-color: rgba(255, 87, 34, 0.3); }
+        .node-3 { background-color: rgba(76, 175, 80, 0.3); }
+        .node-4 { background-color: rgba(33, 150, 243, 0.3); }
+        .node-5 { background-color: rgba(156, 39, 176, 0.3); }
+        .node-6 { background-color: rgba(255, 193, 7, 0.3); }
+        .node-7 { background-color: rgba(63, 81, 181, 0.3); }
+        .node-8 { background-color: rgba(0, 150, 136, 0.3); }
+        .node-9 { background-color: rgba(255, 152, 0, 0.3); }
+        .node-10 { background-color: rgba(139, 195, 74, 0.3); }
+        .node-11 { background-color: rgba(33, 150, 243, 0.3); }
+        .node-12 { background-color: rgba(255, 64, 129, 0.3); }
+        .node-13 { background-color: rgba(0, 188, 212, 0.3); }
+        .node-14 { background-color: rgba(156, 39, 176, 0.3); }
+        .node-15 { background-color: rgba(233, 30, 99, 0.3); }
+
+        #export-btn, #load-btn {
+            padding: 10px 15px;
+            margin: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #export-btn:hover, #load-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #legend {
+            width: 250px;
+            padding: 20px;
+            background-color: #e0e0e0;
+            border-left: 2px solid #ccc;
+            position: relative;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        #legend h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            margin-bottom: 20px;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .legend-description {
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* Modal for larger text editor */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            position: absolute;
+            background-color: #fff;
+            padding: 20px;
+            width: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal textarea {
+            width: 100%;
+            height: 300px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .modal button {
+            padding: 10px 15px;
+            margin-right: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .modal button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="mindmap-container">
+        <h2>Save the Cat Story Structure</h2>
+
+        <button id="export-btn">Export to Text</button>
+        <button id="load-btn">Load from Text File</button>
+        <input type="file" id="file-input" accept=".txt" style="display:none">
+        <div id="mindmap">
+            <!-- Sticky note nodes will be added here -->
+        </div>
+    </div>
+
+    <div id="legend">
+        <h3>Chapter Descriptions</h3>
+        <!-- Legend items will be added here dynamically -->
+    </div>
+
+    <!-- Modal for larger text editor -->
+    <div id="text-editor-modal" class="modal">
+        <div class="modal-content">
+            <textarea id="modal-textarea"></textarea>
+            <button id="save-btn">Save</button>
+            <button id="close-btn">Close</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mindmap = document.getElementById('mindmap');
+
+            const exportBtn = document.getElementById('export-btn');
+            const loadBtn = document.getElementById('load-btn');
+            const fileInput = document.getElementById('file-input');
+            const legend = document.getElementById('legend');
+            const modal = document.getElementById('text-editor-modal');
+            const modalTextarea = document.getElementById('modal-textarea');
+            const saveBtn = document.getElementById('save-btn');
+            const closeBtn = document.getElementById('close-btn');
+
+            let currentNode = null; // Track which node is being edited
+
+            const chapters = [
+                { title: "0. Title", description: "Title and iconic description" },
+                { title: "1. Opening Image", description: "This is the first impression of what kind of story the audience is about to see. It's a snapshot of the main character's problem before the adventure begins. (1% of the script)" },
+                { title: "2. Theme Stated", description: "The theme of the story is subtly suggested, often in a conversation. (5%)" },
+                { title: "3. Set-Up", description: "This section provides more information about the hero's life as it currently is and what's missing from it. (1-10%)" },
+                { title: "4. Catalyst", description: "A problem disrupts the hero's life, also known as the �call to adventure�. (10%)" },
+                { title: "5. Debate", description: "The hero doubts the journey they must undertake. It's a last chance for the hero to say �No�. (10-20%)" },
+                { title: "6. Break into Two", description: "The hero makes the decision and enters a new world or way of life. (20%)" },
+                { title: "7. B Story", description: "A secondary story begins, often involving a love interest or a sidekick, that will weave in and out of the main story. (22%)" },
+                { title: "8. Fun and Games", description: "This is often where most of the trailer moments are found. The hero explores the new world and the audience is entertained. (20-50%)" },
+                { title: "9. Midpoint", description: "A moment of either success or failure that changes the hero's journey in a meaningful way. (50%)" },
+                { title: "10. Bad Guys Close In", description: "If the midpoint was a high, things get bad here. If the midpoint was a low, things start to look up. (50-75%)" },
+                { title: "11. All is Lost", description: "The lowest point for the hero. The journey seems impossible to complete, and the hero feels defeated. (75%)" },
+                { title: "12. Dark Night of the Soul", description: "The hero hits rock bottom, wallowing in hopelessness. The hero learns the theme stated back at the beginning. (75-80%)" },
+                { title: "13. Break into Three", description: "The hero finds inspiration, often from the B Story, and decides it's time to fight. (80%)" },
+                { title: "14. Finale", description: "The hero confronts the antagonist or whatever stands in their way. The lessons learned in Act Two are put into action. (80-99%)" },
+                { title: "15. Final Image", description: "A reflection of the opening image, showing how the hero's world and character have changed. (99-100%)" }
+            ];
+
+            const colors = [
+                'node-0', 'node-1', 'node-2', 'node-3', 
+                'node-4', 'node-5', 'node-6', 
+                'node-7', 'node-8', 'node-9', 
+                'node-10', 'node-11', 'node-12', 
+                'node-13', 'node-14', 'node-15'
+            ];
+
+            function createNodesFromChapters() {
+                chapters.forEach((chapter, index) => {
+                    const node = document.createElement('div');
+                    node.className = `node ${colors[index]}`;
+                    node.contentEditable = true;
+                    node.style.top = `${(Math.floor(index / 4) * 180) + 10}px`;
+                    node.style.left = `${(index % 4) * 380 + 20}px`; // Adjusted for 50% width increase
+                    node.innerText = chapter.title;
+
+                    mindmap.appendChild(node);
+                    makeNodeDraggable(node);
+
+                    // Add description to the legend
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    const legendTitle = document.createElement('div');
+                    legendTitle.className = 'legend-title';
+                    legendTitle.innerText = chapter.title;
+                    const legendDescription = document.createElement('div');
+                    legendDescription.innerText = chapter.description;
+
+                    legendItem.appendChild(legendTitle);
+                    legendItem.appendChild(legendDescription);
+                    legend.appendChild(legendItem);
+
+                    // Double-click event to open modal editor
+                    node.addEventListener('dblclick', () => {
+                        currentNode = node;
+                        modalTextarea.value = node.innerText; // Load node text into the modal
+                        modal.style.display = 'block'; // Show the modal
+                    });
+                });
+            }
+
+            createNodesFromChapters();
+
+
+
+            // Export content of nodes to a text file
+            exportBtn.addEventListener('click', () => {
+                let textContent = '';
+                const nodes = document.querySelectorAll('.node');
+                nodes.forEach(node => {
+                    textContent += `***\n${node.innerText}\n\n`;
+                });
+                downloadTextFile(textContent, 'Chapters_Story_Structure.txt');
+            });
+
+            // Function to download a text file
+            function downloadTextFile(text, filename) {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+            }
+
+            // Load content from a text file
+            loadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const content = event.target.result;
+                        loadContentFromText(content);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            function loadContentFromText(text) {
+                const chaptersArray = text.split('***').filter(ch => ch.trim());
+                mindmap.innerHTML = '';
+
+                chaptersArray.forEach((chapterContent, index) => {
+                    const node = document.createElement('div');
+                    node.className = `node ${colors[index]}`;
+                    node.contentEditable = true;
+                    node.style.top = `${(Math.floor(index / 4) * 180) + 10}px`;
+                    node.style.left = `${(index % 4) * 380 + 20}px`; // Adjusted for 50% width increase
+                    node.innerText = chapterContent.trim();
+
+                    mindmap.appendChild(node);
+                    makeNodeDraggable(node);
+
+                    // Double-click event for opening modal
+                    node.addEventListener('dblclick', () => {
+                        currentNode = node;
+                        modalTextarea.value = node.innerText;
+                        modal.style.display = 'block';
+                    });
+                });
+            }
+
+            // Function to make nodes draggable
+            function makeNodeDraggable(node) {
+                let offsetX, offsetY;
+
+                node.addEventListener('mousedown', (e) => {
+                    offsetX = e.clientX - node.offsetLeft;
+                    offsetY = e.clientY - node.offsetTop;
+                    document.addEventListener('mousemove', moveNode);
+                });
+
+                document.addEventListener('mouseup', () => {
+                    document.removeEventListener('mousemove', moveNode);
+                });
+
+                function moveNode(e) {
+                    node.style.left = `${e.clientX - offsetX}px`;
+                    node.style.top = `${e.clientY - offsetY}px`;
+                }
+            }
+
+            // Save button in the modal
+            saveBtn.addEventListener('click', () => {
+                if (currentNode) {
+                    currentNode.innerText = modalTextarea.value; // Save the modal text into the node
+                }
+                modal.style.display = 'none'; // Close the modal
+            });
+
+            // Close button in the modal
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+        });
+    </script>
+</body>
+</html>
